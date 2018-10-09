@@ -1,0 +1,29 @@
+{
+  "name": "package1.json",
+  "version": "1.0.0",
+  "description": "test for node.js",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "test",
+    "node"
+  ],
+  "author": "Maria",
+  "license": "ISC",
+  "dependencies": {
+    "bower": "^1.8.4",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.16.3",
+    "gulp": "^3.9.1",
+    "jquery": "^1.12.4",
+    "multer": "^1.4.0",
+    "swig": "^1.4.2"
+  },
+  "devDependencies": {},
+  "directories": {
+    "lib": "lib"
+  }
+}
