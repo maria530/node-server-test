@@ -16,25 +16,25 @@ const multer  = require('multer');
 /* multer是一个专门用来处理multipart/form-data的node.js的一个中间件函数 */
 app.set('etag','strong');  
 app.use(cookieParser());
-// app.use('/showStatic',express.static(__dirname + '/static'));  //设置静态文件目录
+app.use('/showStatic',express.static(__dirname + '/static'));  //设置静态文件目录
 /* 访问页面上的静态资源 express.static函数里面的参数是该资源在磁盘的完整路径，app.use函数的第一个参数
 是在页面访问的时候在原有域名下，需要通过该路由加上静态资源的位置才能访问
 例如 访问/static/img/test.png 在页面上通过访问 localhost:8888/public/img/static
 感觉整体上就是用public路由代替原本静态资源所在的目录static实现的
 */
 // app.use(express.static(path.join(__dirname,'static')));
-var options = {
-  dotfiles: 'ignore',
-  etag: true,
-  extensions: ['htm', 'html'],
-  index: false,
-  maxAge: '1d',
-  redirect: false,
-  setHeaders: function (res, path, stat) {
-    res.set('x-timestamp', Date.now())
-  }
-};
-app.use(express.static('static',options)); //跟16行的对比，感觉__dirname + '/static'整个字符串作为参数和'static'字符串作为参数效果是一样的 
+// var options = {
+//   dotfiles: 'ignore',
+//   etag: true,
+//   extensions: ['htm', 'html'],
+//   index: false,
+//   maxAge: '1d',
+//   redirect: false,
+//   setHeaders: function (res, path, stat) {
+//     res.set('x-timestamp', Date.now())
+//   }
+// };
+// app.use(express.static('static',options)); //跟16行的对比，感觉__dirname + '/static'整个字符串作为参数和'static'字符串作为参数效果是一样的 
 /* 上面的内容和app.use(express.static(__dirname + '/static'))是一样的效果 */
 swig.setDefaults({cache:false});
 console.log('dirname',__dirname);
@@ -202,11 +202,18 @@ router.get('/error',function(req,res,next){
   res.send('after add /error route');// mark as funD
 })
 
-router.post('/fileUpload',upload.single('avatar'),function(req,res,next){
+router.post('/fileUpload',function(req,res,next){
   console.log('enter /fileUpload route');
   console.log('req.body',req.body);
   console.log('req.file',req.file);
+  res.send({success:true});
 })
+
+// router.post('/fileUpload',upload.single('avatar'),function(req,res,next){
+//   console.log('enter /fileUpload route');
+//   console.log('req.body',req.body);
+//   console.log('req.file',req.file);
+// })
 /*  //  上面例子中req.file 的console 结果是{ fieldname: 'avatar',
   originalname: 'Capture.PNG',
   encoding: '7bit',

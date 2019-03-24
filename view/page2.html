@@ -1,20 +1,374 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
-    <script src="../lib/jquery.js"></script>
+    <title>摄像头调用2</title>
+    <script type="text/javascript" src="../showStatic/js/zip.js"></script>
+    <script src = "https://cdn.polyfill.io/v2/polyfill.min.js"></script>
+    <script type="text/javascript" src="../showStatic/js/deflate.js"></script>
+    <script type="text/javascript" src="../showStatic/js/inflate.js"></script>
+    <script type="text/javascript" src="../showStatic/js/z-worker.js"></script>
+    <script type="text/javascript" src="../showStatic/js/jquery.js"></script>
 </head>
+
 <body>
-    <p>this is view folder page2.html 这是另一个p标签</p>
-    <form action="/fileUpload" enctype="multipart/form-data" method="post">
-        <input type="file" name="avatar" />
-        <input type="submit" value="submit" />
-     </form>
-    <script>
+  <button id="startToRecord">start to record</button>
+  <button id="close">close camera</button>
+  <button id="captureSnapShot">capture snapShot</button>
+  <button id="zipBlob">zip blob</button>
+  <br />
+  <div class="videoWrap" style="position:relative">
+      <video id="v" width="240" height="320" poster=""></video>
+      <!-- poster的属性值是一个黑色背景的图片 -->
+      <img src="./pictureModel.png" width="240" height="320" style="position:absolute;left:0;top:0;z-index:10" />
+  </div>
+ 
+  <canvas id="canvas" width="240" height="320"></canvas>
     
+    <input type="file" id="file" />
+    picture:<br />
+    <img src="" id="img" />
+    <script>
+      zip.workerScriptsPath = "/";
+    
+
+//       // create the blob object storing the data to compress
+// var blob = new Blob([ "Lorem ipsum dolor sit amet, consectetuer adipiscing elit..." ], {
+//   type : "text/plain"
+// });
+// // creates a zip storing the file "lorem.txt" with blob as data
+// // the zip will be stored into a Blob object (zippedBlob)
+// zipBlob("lorem.txt", blob, function(zippedBlob) {
+//   console.log('zippedBlob',zippedBlob);
+//   // unzip the first file from zipped data stored in zippedBlob
+  // unzipBlob(zippedBlob, function(unzippedBlob) {
+  //   // logs the uncompressed Blob
+  //   console.log(unzippedBlob);
+  // });
+// });
+
+zip.createWriter(new zip.BlobWriter('application/zip'), function(writer) {
+
+// use a TextReader to read the String to add
+writer.add("filename.txt", new zip.TextReader("test!"), function() {
+  // onsuccess callback
+  
+  // close the zip writer
+  writer.close(function(blob) {
+    console.log('blob',blob);
+    // blob contains the zip file as a Blob object
+
+  });
+}, function(currentIndex, totalIndex) {
+  // onprogress callback
+});
+}, function(error) {
+// onerror callback
+});
+
+function zipBlob(filename, blob, callback) {
+  // use a zip.BlobWriter object to write zipped data into a Blob object
+  zip.createWriter(new zip.BlobWriter("application/zip"), function(zipWriter) {
+    // use a BlobReader object to read the data stored into blob variable
+    zipWriter.add(filename, new zip.BlobReader(blob), function() {
+      // close the writer and calls callback function
+      console.log('zipWriter',zipWriter);
+      zipWriter.close(callback);
+    },function(){
+
+    },{
+      level:9
+    });
+  }, onerror);
+}
+
+
+function unzipBlob(blob, callback) {
+  // use a zip.BlobReader object to read zipped data stored into blob variable
+  zip.createReader(new zip.BlobReader(blob), function(zipReader) {
+    // get entries from the zip file
+    zipReader.getEntries(function(entries) {
+      // get data from the first file
+      entries[0].getData(new zip.BlobWriter("text/plain"), function(data) {
+        // close the reader and calls callback function with uncompressed data as parameter
+        zipReader.close();
+        callback(data);
+      });
+    });
+  }, onerror);
+}
+
+function onerror(message) {
+  console.error(message);
+}
+
+
+
+      var imgSrcArray = [];
+      (function(){
+        var startToRecordBtn = document.getElementById('startToRecord'),
+            closeBtn = document.getElementById('close'),
+            canvas = document.getElementById('canvas'),
+            video = document.getElementById('v'),
+            captureSnapShotBtn = document.getElementById('captureSnapShot'),
+            zipBlobBtn = document.getElementById('zipBlob');
+
+        startToRecordBtn.onclick = startToRecord;
+        captureSnapShotBtn.onclick = captureSnapShot;
+        zipBlobBtn.onclick = zipBase64;
+
+        function captureSnapShot(){
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(video,0,0,240,320,0,0,240,320);
+          img.src = canvas.toDataURL('image/png');
+          
+          imgSrcArray.push(img.src);
+          console.log('imgSrcArray',imgSrcArray);
+        }
+
+
+        function zipBase64(){
+          var blob = new Blob(imgSrcArray,{type:'text/plain'});
+          console.log('img src blob',blob);
+          zipBlob("uploadData.txt", blob, function(zippedBlob) {
+            window.zippedBlob= zippedBlob;
+          console.log('zippedBlob',zippedBlob);
+          $.ajax({
+            url:'/fileUpload',
+            type:'POST',
+            dataType:'json',
+            processData:false,
+            contentType:false,
+            data:zippedBlob,
+            success:function(){
+              console.log('successs');
+            },
+            error:function(){
+              console.log('error');
+            }
+          })
+          // unzip the first file from zipped data stored in zippedBlob
+          // unzipBlob(zippedBlob, function(unzippedBlob) {
+          //   // logs the uncompressed Blob
+          //   // console.log(unzippedBlob);
+          // });
+        });
+        }
+
+
+        function startToRecord(){
+          if (navigator.mediaDevices === undefined) {
+                navigator.mediaDevices = {};
+            }
+            if (navigator.mediaDevices.getUserMedia === undefined) {
+                navigator.mediaDevices.getUserMedia = function (constraints) {
+                    // 首先，如果有getUserMedia的话，就获得它
+                    var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+                    /*
+                    MDN里面是这样写的 所以有可能需要认证 ？？？？？
+                    navigator.getUserMedia = navigator.getUserMedia ||
+                         navigator.webkitGetUserMedia ||
+                         navigator.mozGetUserMedia;  
+                    */
+                    // 一些浏览器根本没实现它 - 那么就返回一个error到promise的reject来保持一个统一的接口
+                    if (!getUserMedia) {
+                        return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+                    }
+
+                    // 否则，为老的navigator.getUserMedia方法包裹一个Promise
+                    return new Promise(function (resolve, reject) {
+                        getUserMedia.call(navigator, constraints, resolve, reject);
+                    });
+                }
+            }
+            var constraints = { 
+              video: { 
+                  frameRate: { ideal: 20, max: 24 },
+                  width: '240',
+                  height:'320'
+              }, 
+              // 人眼能够识别的帧率在24可以算是最佳，如果考虑带宽的影响，理想的帧率可以设置为10，最大帧率可以设置为15 
+              audio: false
+            };
+
+
+            // const constraints = {
+            //     video: true,
+            //     audio: false
+            // };
+            var promise = navigator.mediaDevices.getUserMedia(constraints);
+            promise.then(function(stream){
+                var v = document.getElementById('v');
+                // 旧的浏览器可能没有srcObject
+                if ("srcObject" in v) {
+                    v.srcObject = stream;
+                } else {
+                    // 避免在新的浏览器里使用它，因为它已经不再支持了
+                    v.src = window.URL.createObjectURL(stream);
+                }
+                v.onloadedmetadata = function (e) {
+                    v.play();
+                };
+
+                
+                closeBtn.onclick = function(){
+                    var track = stream.getTracks()[0];
+                    track.stop();
+                }
+            },function(err){
+                // It's possible for the returned promise to neither resolve nor reject, as the user is not required to make a choice at all and may simply ignore the request.
+
+                // err.name : NotAllowedError or NotFoundError 
+                // camera notfound tips and camera not allowed tips
+                console.error(err.name + ": " + err.message);
+            })
+        }
+        
+
+
+      })()
+
+
+
+
+    // var file = document.getElementById('file');
+    // var img = document.getElementById('img');
+    // file.onchange = function(e){
+    //   var fileCont = this.files[0];
+    //   // var reader = new FileReader();
+    //   //   reader.readAsDataURL(fileCont);
+    //   //   reader.onload = function(){
+    //   //     img.src = this.result;
+    //   //   }
+    //   var data = window.URL.createObjectURL(fileCont);
+    //   console.log('data',data);
+    //     img.src = data;
+    // } 
+
+//  *  Copyright (c) 2015 The WebRTC project authors. All Rights Reserved.
+//  *
+//  *  Use of this source code is governed by a BSD-style license
+//  *  that can be found in the LICENSE file in the root of the source
+//  *  tree.
+ 
+ 'use strict';
+/*
+// Put variables in global scope to make them available to the browser console.
+const constraints = window.constraints = {
+  audio: false,
+  video: true
+};
+
+function handleSuccess(stream) {
+  const video = document.querySelector('video');
+  const videoTracks = stream.getVideoTracks();
+  console.log('Got stream with constraints:', constraints);
+  console.log(`Using video device: ${videoTracks[0].label}`);
+  window.stream = stream; // make variable available to browser console
+  video.srcObject = stream;
+}
+
+function handleError(error) {
+  if (error.name === 'ConstraintNotSatisfiedError') {
+    let v = constraints.video;
+    errorMsg(`The resolution ${v.width.exact}x${v.height.exact} px is not supported by your device.`);
+  } else if (error.name === 'PermissionDeniedError') {
+    errorMsg('Permissions have not been granted to use your camera and ' +
+      'microphone, you need to allow the page access to your devices in ' +
+      'order for the demo to work.');
+  }
+  errorMsg(`getUserMedia error: ${error.name}`, error);
+}
+
+function errorMsg(msg, error) {
+  const errorElement = document.querySelector('#errorMsg');
+  errorElement.innerHTML += `<p>${msg}</p>`;
+  if (typeof error !== 'undefined') {
+    console.error(error);
+  }
+}
+
+async function init(e) {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    handleSuccess(stream);
+    e.target.disabled = true;
+  } catch (e) {
+    handleError(e);
+  }
+}
+
+document.querySelector('#showVideo').addEventListener('click', e => init(e));
+*/
+        // !(function () {
+        //     // 老的浏览器可能根本没有实现 mediaDevices，所以我们可以先设置一个空的对象
+        //     if (navigator.mediaDevices === undefined) {
+        //         navigator.mediaDevices = {};
+        //     }
+        //     if (navigator.mediaDevices.getUserMedia === undefined) {
+        //         navigator.mediaDevices.getUserMedia = function (constraints) {
+        //             // 首先，如果有getUserMedia的话，就获得它
+        //             var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+
+        //             // 一些浏览器根本没实现它 - 那么就返回一个error到promise的reject来保持一个统一的接口
+        //             if (!getUserMedia) {
+        //                 return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+        //             }
+
+        //             // 否则，为老的navigator.getUserMedia方法包裹一个Promise
+        //             return new Promise(function (resolve, reject) {
+        //                 getUserMedia.call(navigator, constraints, resolve, reject);
+        //             });
+        //         }
+        //     }
+        //     var constraints = { 
+        //       video: { frameRate: { ideal: 20, max: 24 } }, 
+        //       // 人眼能够识别的帧率在24可以算是最佳，如果考虑带宽的影响，理想的帧率可以设置为10，最大帧率可以设置为15 
+        //       audio: false
+        //     };
+
+
+        //     // const constraints = {
+        //     //     video: true,
+        //     //     audio: false
+        //     // };
+        //     let promise = navigator.mediaDevices.getUserMedia(constraints);
+        //     promise.then(function(stream){
+        //       var audioTracks = stream.getAudioTracks();
+        //         console.log('audioTracks',audioTracks);
+        //         var videoTracks = stream.getVideoTracks();
+        //         console.log('videoTracks',videoTracks);
+        //         console.log('stream',stream);
+        //         let v = document.getElementById('v');
+        //         window.stream = stream;
+        //         // 旧的浏览器可能没有srcObject
+        //         if ("srcObject" in v) {
+        //           console.log('v.srcObj',v.srcObject);
+        //             v.srcObject = stream;
+        //         } else {
+        //             // 避免在新的浏览器里使用它，因为它已经不再支持了
+        //             v.src = window.URL.createObjectURL(stream);
+        //         }
+        //         v.onloadedmetadata = function (e) {
+        //             v.play();
+        //         };
+
+        //         var closeBtn = document.getElementById('close');
+        //         closeBtn.onclick = function(){
+        //             var track = stream.getTracks()[0];
+        //             track.stop();
+        //         }
+        //     }).catch(function(err){
+        //         // It's possible for the returned promise to neither resolve nor reject, as the user is not required to make a choice at all and may simply ignore the request.
+
+        //         // err.name : NotAllowedError or NotFoundError 
+        //         console.error(err.name + ": " + err.message);
+        //     })
+            
+            
+
+        // })();
     </script>
 </body>
 </html>
